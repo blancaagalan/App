@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="Gestión financiera personal - controla tus ingresos, gastos y ahorro mensual">
+  <meta name="description" content="Gestión financiera personal mensual">
   <title>FinanceApp — Tu Dinero</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0a0a1a">
@@ -90,13 +90,15 @@
 
     /* ─── HEADER ─── */
     .app-header {
-      position:sticky; top:0; z-index:100; padding:14px 20px;
-      background:rgba(8,8,26,0.85); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+      position:sticky; top:0; z-index:100;
+      background:rgba(8,8,26,0.92); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
       border-bottom:1px solid rgba(255,255,255,0.07);
-      display:flex; align-items:center; justify-content:space-between;
+    }
+    .header-top {
+      padding:12px 20px; display:flex; align-items:center; justify-content:space-between;
     }
     .header-title {
-      font-size:18px; font-weight:900;
+      font-size:17px; font-weight:900;
       background:linear-gradient(135deg,#fff,#c4b5fd); -webkit-background-clip:text;
       -webkit-text-fill-color:transparent; background-clip:text;
     }
@@ -107,6 +109,32 @@
       display:flex; align-items:center; justify-content:center;
       font-size:14px; font-weight:800; color:#fff;
       box-shadow:0 2px 12px rgba(124,58,237,0.4);
+    }
+
+    /* ─── MONTH NAV ─── */
+    .month-nav {
+      display:flex; align-items:center; justify-content:center; gap:14px;
+      padding:8px 20px 10px; border-top:1px solid rgba(255,255,255,0.05);
+    }
+    .month-nav-btn {
+      width:30px; height:30px; border-radius:50%; border:none;
+      background:rgba(255,255,255,0.07); color:var(--text); font-size:14px;
+      cursor:pointer; display:flex; align-items:center; justify-content:center;
+      transition:all .2s; flex-shrink:0;
+    }
+    .month-nav-btn:hover { background:rgba(124,58,237,0.3); }
+    .month-nav-btn:disabled { opacity:.25; cursor:default; }
+    #monthLabel {
+      font-size:14px; font-weight:800; color:var(--text);
+      text-transform:capitalize; min-width:160px; text-align:center;
+      cursor:pointer; padding:4px 10px; border-radius:8px;
+      transition:background .2s;
+    }
+    #monthLabel:hover { background:rgba(255,255,255,0.05); }
+    .month-badge {
+      font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px;
+      background:rgba(16,185,129,0.15); color:var(--green);
+      border:1px solid rgba(16,185,129,0.25);
     }
 
     /* ─── BOTTOM NAV ─── */
@@ -250,6 +278,31 @@
     .row-sb.sm { font-size:13px; color:var(--text2); padding:5px 0; }
     .row-sb.sm span:last-child { font-weight:700; color:var(--text); }
 
+    /* ─── MONTH PICKER MODAL ─── */
+    .modal-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:500;
+      display:none; align-items:flex-end; justify-content:center;
+      backdrop-filter:blur(4px);
+    }
+    .modal-overlay.open { display:flex; }
+    .month-picker {
+      background:#0f0f2e; border:1px solid rgba(255,255,255,0.1);
+      border-radius:24px 24px 0 0; padding:24px 20px 36px; width:100%; max-width:480px;
+    }
+    .month-picker h3 { font-size:16px; font-weight:800; margin-bottom:16px; text-align:center; }
+    .mp-year { display:flex; align-items:center; justify-content:center; gap:16px; margin-bottom:16px; }
+    .mp-year span { font-size:18px; font-weight:900; min-width:60px; text-align:center; }
+    .mp-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .mp-month-btn {
+      padding:10px; border:1px solid rgba(255,255,255,0.08); border-radius:12px;
+      background:rgba(255,255,255,0.04); color:var(--text); font-size:13px;
+      font-weight:600; font-family:'Inter',sans-serif; cursor:pointer; transition:all .2s;
+      text-align:center;
+    }
+    .mp-month-btn:hover { background:rgba(124,58,237,0.2); border-color:var(--accent); }
+    .mp-month-btn.active { background:var(--ag); border-color:transparent; color:#fff; }
+    .mp-month-btn.has-data::after { content:'•'; display:block; font-size:8px; color:var(--green); margin-top:2px; }
+
     @media(max-width:360px) {
       .stats-grid { grid-template-columns:1fr; }
       .inp-row { grid-template-columns:1fr; }
@@ -301,15 +354,36 @@
   </div>
 </div>
 
+<!-- ══════════════════ MONTH PICKER MODAL ══════════════════ -->
+<div class="modal-overlay" id="monthPickerModal" onclick="closeMonthPicker(event)">
+  <div class="month-picker">
+    <h3>Seleccionar mes</h3>
+    <div class="mp-year">
+      <button class="month-nav-btn" onclick="mpPrevYear()">◀</button>
+      <span id="mpYear">2026</span>
+      <button class="month-nav-btn" id="mpNextYearBtn" onclick="mpNextYear()">▶</button>
+    </div>
+    <div class="mp-grid" id="mpGrid"></div>
+  </div>
+</div>
+
 <!-- ══════════════════ MAIN APP ══════════════════ -->
 <div id="app">
 
   <!-- Header -->
   <header class="app-header">
-    <div class="header-title">💰 FinanceApp</div>
-    <div class="header-right">
-      <span class="header-name" id="hdrName"></span>
-      <div class="header-avatar" id="hdrAvatar">?</div>
+    <div class="header-top">
+      <div class="header-title">💰 FinanceApp</div>
+      <div class="header-right">
+        <span class="header-name" id="hdrName"></span>
+        <div class="header-avatar" id="hdrAvatar">?</div>
+      </div>
+    </div>
+    <!-- Month Navigator -->
+    <div class="month-nav">
+      <button class="month-nav-btn" onclick="prevMonth()">◀</button>
+      <span id="monthLabel" onclick="openMonthPicker()">Noviembre 2026</span>
+      <button class="month-nav-btn" id="btnNextMonth" onclick="nextMonth()">▶</button>
     </div>
   </header>
 
@@ -367,7 +441,7 @@
   <!-- ── PAGE: INGRESOS ── -->
   <div class="page" id="pageIngresos">
     <div class="sec-title">Ingresos</div>
-    <div class="sec-sub">Configura tu ingreso fijo y añade variables</div>
+    <div class="sec-sub" id="ingresosSub">Configura tu ingreso fijo y añade variables</div>
 
     <!-- Ingreso Fijo -->
     <div class="card">
@@ -375,7 +449,7 @@
         <div class="card-icon" style="background:rgba(124,58,237,0.15)">💼</div>
         <div>
           <div class="card-title">Ingreso Fijo Mensual</div>
-          <div class="card-subtitle">Tu sueldo o ingreso principal</div>
+          <div class="card-subtitle">Sueldo o ingreso principal de este mes</div>
         </div>
       </div>
       <div class="inp-group">
@@ -442,7 +516,7 @@
   <!-- ── PAGE: GASTOS ── -->
   <div class="page" id="pageGastos">
     <div class="sec-title">Gastos</div>
-    <div class="sec-sub">Registra tus gastos del mes</div>
+    <div class="sec-sub" id="gastosSub">Registra tus gastos del mes</div>
 
     <div class="card">
       <div class="card-header">
@@ -494,8 +568,9 @@
   <!-- ── PAGE: ANÁLISIS ── -->
   <div class="page" id="pageAnalisis">
     <div class="sec-title">Análisis</div>
-    <div class="sec-sub">Tu dinero en perspectiva</div>
+    <div class="sec-sub" id="analisisSub">Tu dinero en perspectiva</div>
 
+    <!-- Chart mensual -->
     <div class="card">
       <div class="card-header">
         <div class="card-icon" style="background:rgba(124,58,237,0.15)">📊</div>
@@ -504,6 +579,16 @@
       <div class="chart-box"><canvas id="barChart"></canvas></div>
     </div>
 
+    <!-- Histórico -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:rgba(16,185,129,0.15)">📅</div>
+        <div><div class="card-title">Histórico mensual</div><div class="card-subtitle">Últimos meses con datos</div></div>
+      </div>
+      <div class="chart-box" style="height:200px"><canvas id="hisChart"></canvas></div>
+    </div>
+
+    <!-- Donut categorías -->
     <div class="card">
       <div class="card-header">
         <div class="card-icon" style="background:rgba(245,158,11,0.15)">🍩</div>
@@ -513,6 +598,7 @@
       <div id="donutLegend" style="margin-top:12px"></div>
     </div>
 
+    <!-- Detalle completo -->
     <div class="card">
       <div class="card-header">
         <div class="card-icon" style="background:rgba(16,185,129,0.15)">📝</div>
@@ -558,8 +644,8 @@
 
     <div class="card" style="text-align:center;color:var(--text3);font-size:12px;line-height:1.9">
       <div style="font-size:30px;margin-bottom:8px">💰</div>
-      <strong style="color:var(--text2)">FinanceApp v1.0</strong><br>
-      Todos los datos se guardan localmente<br>en tu dispositivo. Nadie externo puede verlos.
+      <strong style="color:var(--text2)">FinanceApp v2.0</strong><br>
+      Datos guardados localmente<br>en tu dispositivo. Nadie externo puede verlos.
     </div>
   </div>
 
@@ -590,15 +676,33 @@ const CAT = {
   otros:        { icon:'📦', label:'Otros',        color:'#6b7280', personal:false },
 };
 
+const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
 // ════════════════════════════════════════════
 //  STATE
 // ════════════════════════════════════════════
 let me = null;
 let D = {};
-let barCh = null, doCh = null;
+let currentMonth = '';   // "YYYY-MM"
+let mpYear = new Date().getFullYear();
+let barCh = null, doCh = null, hisCh = null;
 
-function blank() {
+// ─── Data structure helpers ───
+function blankMes() {
   return { ingresoFijo:{importe:0,pctP:10,pctI:10}, variables:[], gastos:[] };
+}
+function blank() {
+  return { meses:{} };
+}
+function todayKey() {
+  const n=new Date();
+  return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');
+}
+function getM(key) {
+  const k = key || currentMonth;
+  if(!D.meses) D.meses={};
+  if(!D.meses[k]) D.meses[k]=blankMes();
+  return D.meses[k];
 }
 
 // ════════════════════════════════════════════
@@ -611,12 +715,25 @@ function save()  { if(me) localStorage.setItem(UK(), JSON.stringify(D)); }
 function load()  {
   try { D = JSON.parse(localStorage.getItem(UK())) || blank(); }
   catch { D = blank(); }
-  if(!D.ingresoFijo) D.ingresoFijo = {importe:0,pctP:10,pctI:10};
-  if(!D.variables)   D.variables = [];
-  if(!D.gastos)      D.gastos = [];
+  // ── Migrate old flat format ──
+  if(!D.meses) {
+    const old = D;
+    D = blank();
+    // If old data had real content, migrate to current month
+    if(old.ingresoFijo || old.variables || old.gastos) {
+      const k = todayKey();
+      D.meses[k] = {
+        ingresoFijo: old.ingresoFijo || {importe:0,pctP:10,pctI:10},
+        variables:   old.variables   || [],
+        gastos:      old.gastos      || []
+      };
+      save();
+      toast('📦 Datos anteriores migrados al mes actual');
+    }
+  }
 }
-function getUsers()    { try{ return JSON.parse(localStorage.getItem(ULK()))||{}; }catch{ return {}; } }
-function saveUsers(u)  { localStorage.setItem(ULK(), JSON.stringify(u)); }
+function getUsers()   { try{ return JSON.parse(localStorage.getItem(ULK()))||{}; }catch{ return {}; } }
+function saveUsers(u) { localStorage.setItem(ULK(), JSON.stringify(u)); }
 
 // ════════════════════════════════════════════
 //  AUTH
@@ -628,16 +745,16 @@ function hp(pin) {
 }
 
 function showRegister() {
-  document.getElementById('registerForm').style.display='block';
-  document.getElementById('loginForm').style.display='none';
-  document.getElementById('loginSubtitle').textContent='Crea tu perfil personal';
-  document.getElementById('loginError').style.display='none';
+  el('registerForm').style.display='block';
+  el('loginForm').style.display='none';
+  el('loginSubtitle').textContent='Crea tu perfil personal';
+  el('loginError').style.display='none';
 }
 function showLogin() {
-  document.getElementById('registerForm').style.display='none';
-  document.getElementById('loginForm').style.display='block';
-  document.getElementById('loginSubtitle').textContent='Tu dinero, bajo control';
-  document.getElementById('loginError').style.display='none';
+  el('registerForm').style.display='none';
+  el('loginForm').style.display='block';
+  el('loginSubtitle').textContent='Tu dinero, bajo control';
+  el('loginError').style.display='none';
 }
 
 function register() {
@@ -695,6 +812,91 @@ function err(msg) {
 }
 
 // ════════════════════════════════════════════
+//  MONTH NAVIGATION
+// ════════════════════════════════════════════
+function fmMonth(key) {
+  const [y,m]=key.split('-');
+  return MONTHS_ES[+m-1]+' '+y;
+}
+
+function prevMonth() {
+  const [y,m]=currentMonth.split('-').map(Number);
+  const d=new Date(y,m-2,1);
+  currentMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  onMonthChange();
+}
+
+function nextMonth() {
+  const [y,m]=currentMonth.split('-').map(Number);
+  const d=new Date(y,m,1);
+  currentMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  onMonthChange();
+}
+
+function onMonthChange() {
+  const today=todayKey();
+  el('monthLabel').textContent=fmMonth(currentMonth);
+  // Disable next if at today's month
+  const atToday=currentMonth>=today;
+  el('btnNextMonth').disabled=atToday;
+  el('btnNextMonth').style.opacity=atToday?'0.25':'1';
+  // Update default date for forms — use last day of month or today if current month
+  const [y,m]=currentMonth.split('-');
+  const now=new Date();
+  let dayStr;
+  if(now.getFullYear()===+y && now.getMonth()+1===+m) {
+    dayStr=String(now.getDate()).padStart(2,'0');
+  } else {
+    dayStr=String(new Date(+y,+m,0).getDate()).padStart(2,'0');
+  }
+  const dateVal=`${y}-${m}-${dayStr}`;
+  el('gFecha').value=dateVal;
+  el('vFecha').value=dateVal;
+  // Update subtitles
+  const label=fmMonth(currentMonth);
+  el('resumenSub').textContent=label+(currentMonth===today?' · Mes actual':'');
+  el('ingresosSub').textContent='Ingresos de '+label;
+  el('gastosSub').textContent='Gastos de '+label;
+  el('analisisSub').textContent='Análisis de '+label;
+  populateInputs();
+  updateAll();
+}
+
+// ─── Month Picker ───
+function openMonthPicker() {
+  mpYear = +currentMonth.split('-')[0];
+  renderMpGrid();
+  el('monthPickerModal').classList.add('open');
+}
+function closeMonthPicker(e) {
+  if(e.target===el('monthPickerModal')) el('monthPickerModal').classList.remove('open');
+}
+function mpPrevYear() { mpYear--; renderMpGrid(); }
+function mpNextYear() { mpYear++; renderMpGrid(); }
+function renderMpGrid() {
+  const today=todayKey(), [ty,tm]=[new Date().getFullYear(),new Date().getMonth()+1];
+  el('mpYear').textContent=mpYear;
+  el('mpNextYearBtn').disabled=mpYear>=ty;
+  el('mpNextYearBtn').style.opacity=mpYear>=ty?'0.25':'1';
+  const grid=el('mpGrid');
+  grid.innerHTML=MONTHS_ES.map((name,i)=>{
+    const mn=String(i+1).padStart(2,'0');
+    const key=mpYear+'-'+mn;
+    const isFuture=key>today;
+    const isActive=key===currentMonth;
+    const hasData=D.meses&&D.meses[key]&&
+      (D.meses[key].gastos.length>0||D.meses[key].variables.length>0||D.meses[key].ingresoFijo.importe>0);
+    if(isFuture) return `<button class="mp-month-btn" style="opacity:.3;cursor:default" disabled>${name.slice(0,3)}</button>`;
+    return `<button class="mp-month-btn${isActive?' active':''}${hasData&&!isActive?' has-data':''}" onclick="selectMonth('${key}')">${name.slice(0,3)}</button>`;
+  }).join('');
+}
+function selectMonth(key) {
+  currentMonth=key;
+  el('monthPickerModal').classList.remove('open');
+  onMonthChange();
+}
+
+// ════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════
 function initApp() {
@@ -702,17 +904,16 @@ function initApp() {
   el('app').style.display='block';
   el('hdrName').textContent=me.name;
   el('hdrAvatar').textContent=me.name[0].toUpperCase();
-  const today=new Date().toISOString().split('T')[0];
-  el('gFecha').value=today; el('vFecha').value=today;
-  populateInputs();
-  updateAll();
+  currentMonth=todayKey();
+  onMonthChange();
   goPage('Resumen');
 }
 
 function populateInputs() {
-  el('fijoImporte').value = D.ingresoFijo.importe || '';
-  el('fijoPctP').value    = D.ingresoFijo.pctP ?? 10;
-  el('fijoPctI').value    = D.ingresoFijo.pctI ?? 10;
+  const mes=getM();
+  el('fijoImporte').value = mes.ingresoFijo.importe || '';
+  el('fijoPctP').value    = mes.ingresoFijo.pctP ?? 10;
+  el('fijoPctI').value    = mes.ingresoFijo.pctI ?? 10;
 }
 
 // ════════════════════════════════════════════
@@ -729,14 +930,15 @@ function goPage(name) {
 // ════════════════════════════════════════════
 //  CALCULATIONS
 // ════════════════════════════════════════════
-function calc() {
-  const f=parseFloat(D.ingresoFijo.importe)||0;
-  const pp=parseFloat(D.ingresoFijo.pctP)||0;
-  const pi=parseFloat(D.ingresoFijo.pctI)||0;
+function calc(key) {
+  const mes=getM(key);
+  const f=parseFloat(mes.ingresoFijo.importe)||0;
+  const pp=parseFloat(mes.ingresoFijo.pctP)||0;
+  const pi=parseFloat(mes.ingresoFijo.pctI)||0;
   const fijoP=f*pp/100, fijoI=f*pi/100, fijoG=f-fijoP-fijoI;
 
   let varT=0,varP=0,varI=0;
-  D.variables.forEach(v=>{
+  mes.variables.forEach(v=>{
     const imp=parseFloat(v.importe)||0, vp=parseFloat(v.pctP)||0, vi=parseFloat(v.pctI)||0;
     varP+=imp*vp/100; varI+=imp*vi/100; varT+=imp;
   });
@@ -745,10 +947,10 @@ function calc() {
   const totIngresos=f+varT;
   const totPersonal=fijoP+varP;
   const totInversion=fijoI+varI;
-  const totDisponible=fijoG+varG; // general spending pool
+  const totDisponible=fijoG+varG;
 
   let gastP=0,gastG=0;
-  D.gastos.forEach(g=>{
+  mes.gastos.forEach(g=>{
     const imp=parseFloat(g.importe)||0;
     if(CAT[g.categoria]?.personal) gastP+=imp; else gastG+=imp;
   });
@@ -762,9 +964,10 @@ function calc() {
 //  UPDATE ALL
 // ════════════════════════════════════════════
 function saveAndUpdate() {
-  D.ingresoFijo.importe=parseFloat(el('fijoImporte').value)||0;
-  D.ingresoFijo.pctP=parseFloat(el('fijoPctP').value)||0;
-  D.ingresoFijo.pctI=parseFloat(el('fijoPctI').value)||0;
+  const mes=getM();
+  mes.ingresoFijo.importe=parseFloat(el('fijoImporte').value)||0;
+  mes.ingresoFijo.pctP=parseFloat(el('fijoPctP').value)||0;
+  mes.ingresoFijo.pctI=parseFloat(el('fijoPctI').value)||0;
   save(); updateAll();
 }
 
@@ -822,20 +1025,27 @@ function addVariable() {
   const pp=parseFloat(el('vPctP').value)||0, pi=parseFloat(el('vPctI').value)||0;
   if(!desc)       return toast('⚠️ Añade una descripción');
   if(!imp||imp<=0) return toast('⚠️ Importe no válido');
-  D.variables.push({id:Date.now(),descripcion:desc,importe:imp,fecha,pctP:pp,pctI:pi});
+  // Validate date is within current month
+  if(fecha) {
+    const [fy,fm2]=fecha.split('-');
+    const [cy,cm]=currentMonth.split('-');
+    if(fy!==cy||fm2!==cm) return toast('⚠️ La fecha debe pertenecer a '+fmMonth(currentMonth));
+  }
+  getM().variables.push({id:Date.now(),descripcion:desc,importe:imp,fecha,pctP:pp,pctI:pi});
   el('vDesc').value=''; el('vImporte').value=''; el('vPctP').value=''; el('vPctI').value='';
   save(); updateAll(); toast('✅ Ingreso variable añadido');
 }
 
 function delVariable(id) {
-  D.variables=D.variables.filter(v=>v.id!==id);
+  getM().variables=getM().variables.filter(v=>v.id!==id);
   save(); updateAll(); toast('🗑️ Ingreso eliminado');
 }
 
 function renderVariables() {
   const el2=el('listaVariables');
-  if(!D.variables.length){ el2.innerHTML='<div class="empty"><div class="ei">💡</div><p>Sin ingresos variables aún</p></div>'; return; }
-  el2.innerHTML=D.variables.map(v=>{
+  const mes=getM();
+  if(!mes.variables.length){ el2.innerHTML='<div class="empty"><div class="ei">💡</div><p>Sin ingresos variables aún</p></div>'; return; }
+  el2.innerHTML=mes.variables.map(v=>{
     const vp=v.importe*v.pctP/100, vi=v.importe*v.pctI/100;
     return `<div class="list-item">
       <div class="item-icon" style="background:rgba(6,182,212,0.12)">💡</div>
@@ -860,21 +1070,28 @@ function addGasto() {
   const fecha=el('gFecha').value, cat=el('gCat').value;
   if(!desc)        return toast('⚠️ Añade una descripción');
   if(!imp||imp<=0) return toast('⚠️ Importe no válido');
-  D.gastos.push({id:Date.now(),descripcion:desc,importe:imp,fecha,categoria:cat});
+  // Validate date is within current month
+  if(fecha) {
+    const [fy,fm2]=fecha.split('-');
+    const [cy,cm]=currentMonth.split('-');
+    if(fy!==cy||fm2!==cm) return toast('⚠️ La fecha debe pertenecer a '+fmMonth(currentMonth));
+  }
+  getM().gastos.push({id:Date.now(),descripcion:desc,importe:imp,fecha,categoria:cat});
   el('gDesc').value=''; el('gImporte').value='';
   save(); updateAll(); toast('✅ Gasto registrado');
 }
 
 function delGasto(id) {
-  D.gastos=D.gastos.filter(g=>g.id!==id);
+  getM().gastos=getM().gastos.filter(g=>g.id!==id);
   save(); updateAll(); toast('🗑️ Gasto eliminado');
 }
 
 function renderGastos() {
   const list=el('listaGastos'), lbl=el('gTotalLabel');
-  if(!D.gastos.length){ list.innerHTML='<div class="empty"><div class="ei">🧾</div><p>Sin gastos registrados</p></div>'; lbl.textContent='Total: 0,00 €'; return; }
-  const sorted=[...D.gastos].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
-  const total=D.gastos.reduce((s,g)=>s+(parseFloat(g.importe)||0),0);
+  const mes=getM();
+  if(!mes.gastos.length){ list.innerHTML='<div class="empty"><div class="ei">🧾</div><p>Sin gastos registrados</p></div>'; lbl.textContent='Total: 0,00 €'; return; }
+  const sorted=[...mes.gastos].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  const total=mes.gastos.reduce((s,g)=>s+(parseFloat(g.importe)||0),0);
   lbl.textContent='Total: '+fm(total);
   list.innerHTML=sorted.map(g=>{
     const c=CAT[g.categoria]||CAT.otros;
@@ -901,7 +1118,7 @@ function renderGastos() {
 function renderCharts() {
   const t=calc();
 
-  // BAR
+  // ── BAR: mes actual ──
   const bCtx=el('barChart').getContext('2d');
   if(barCh) barCh.destroy();
   barCh=new Chart(bCtx,{
@@ -925,9 +1142,55 @@ function renderCharts() {
     }
   });
 
-  // DONUT
+  // ── HISTORICAL BAR ──
+  // Get all months that have data, sorted, last 12
+  const allKeys=Object.keys(D.meses||{}).sort();
+  const hisKeys=allKeys.filter(k=>{
+    const m=D.meses[k];
+    return m&&(m.ingresoFijo.importe>0||m.variables.length>0||m.gastos.length>0);
+  }).slice(-12);
+
+  const hCtx=el('hisChart').getContext('2d');
+  if(hisCh) hisCh.destroy();
+  if(hisKeys.length<2){
+    // Not enough data for history
+    hisCh=null;
+    el('hisChart').style.display='none';
+    el('hisChart').parentNode.innerHTML='<div class="empty"><div class="ei">📅</div><p>Registra datos en más de un mes para ver el histórico</p></div>';
+  } else {
+    el('hisChart').style.display='block';
+    const hLabels=hisKeys.map(k=>{ const [y,m]=k.split('-'); return MONTHS_ES[+m-1].slice(0,3)+' '+y.slice(2); });
+    const hIngresos=hisKeys.map(k=>calc(k).totIngresos);
+    const hGastado=hisKeys.map(k=>calc(k).totGastado);
+    const hInversion=hisKeys.map(k=>calc(k).totInversion);
+    hisCh=new Chart(hCtx,{
+      type:'bar',
+      data:{
+        labels:hLabels,
+        datasets:[
+          {label:'Ingresos', data:hIngresos, backgroundColor:'rgba(124,58,237,.65)', borderColor:'#7c3aed', borderWidth:1, borderRadius:5},
+          {label:'Gastado',  data:hGastado,  backgroundColor:'rgba(239,68,68,.65)',  borderColor:'#ef4444', borderWidth:1, borderRadius:5},
+          {label:'Inversión',data:hInversion,backgroundColor:'rgba(139,92,246,.65)',borderColor:'#8b5cf6', borderWidth:1, borderRadius:5},
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          legend:{display:true,labels:{color:'rgba(240,240,255,.7)',font:{size:11},boxWidth:10,padding:12}},
+          tooltip:{callbacks:{label:c=>c.dataset.label+': '+fm(c.raw)}}
+        },
+        scales:{
+          y:{ticks:{color:'rgba(240,240,255,.45)',callback:v=>v+'€'},grid:{color:'rgba(255,255,255,.05)'},stacked:false},
+          x:{ticks:{color:'rgba(240,240,255,.6)',font:{size:10}},grid:{display:false}}
+        }
+      }
+    });
+  }
+
+  // ── DONUT: categorías mes actual ──
   const totCat={};
-  D.gastos.forEach(g=>{ totCat[g.categoria]=(totCat[g.categoria]||0)+(parseFloat(g.importe)||0); });
+  const mes=getM();
+  mes.gastos.forEach(g=>{ totCat[g.categoria]=(totCat[g.categoria]||0)+(parseFloat(g.importe)||0); });
   const keys=Object.keys(totCat);
   const dCtx=el('donutChart').getContext('2d');
   if(doCh) doCh.destroy();
@@ -965,23 +1228,22 @@ function renderCharts() {
     }).join('');
   }
 
-  // DETALLE
-  const t2=calc();
+  // ── DETALLE ──
   const rows=[
-    {l:'📥 Ingreso fijo',v:t2.f},
-    {l:'💡 Ingresos variables',v:t2.varT},
-    {l:'💰 Total ingresos',v:t2.totIngresos,bold:true,color:'var(--violet)'},
+    {l:'📥 Ingreso fijo',v:t.f},
+    {l:'💡 Ingresos variables',v:t.varT},
+    {l:'💰 Total ingresos',v:t.totIngresos,bold:true,color:'var(--violet)'},
     {sep:true},
-    {l:'🧍 Bolsa personal asignada',v:t2.totPersonal,color:'var(--cyan)'},
-    {l:'🧍 Gastado en personal',v:t2.gastP,color:'var(--red)'},
-    {l:'🧍 Saldo personal',v:t2.totPersonal-t2.gastP,bold:true,color:t2.totPersonal>=t2.gastP?'var(--green)':'var(--red)'},
+    {l:'🧍 Bolsa personal asignada',v:t.totPersonal,color:'var(--cyan)'},
+    {l:'🧍 Gastado en personal',v:t.gastP,color:'var(--red)'},
+    {l:'🧍 Saldo personal',v:t.totPersonal-t.gastP,bold:true,color:t.totPersonal>=t.gastP?'var(--green)':'var(--red)'},
     {sep:true},
-    {l:'📈 Inversión comprometida',v:t2.totInversion,color:'var(--violet)'},
+    {l:'📈 Inversión comprometida',v:t.totInversion,color:'var(--violet)'},
     {sep:true},
-    {l:'🏠 Disponible general',v:t2.totDisponible},
-    {l:'🧾 Gastado general',v:t2.gastG,color:'var(--red)'},
+    {l:'🏠 Disponible general',v:t.totDisponible},
+    {l:'🧾 Gastado general',v:t.gastG,color:'var(--red)'},
     {sep:true},
-    {l:'⚖️ Balance final',v:t2.balance,bold:true,color:t2.balance>=0?'var(--green)':'var(--red)'},
+    {l:'⚖️ Balance final',v:t.balance,bold:true,color:t.balance>=0?'var(--green)':'var(--red)'},
   ];
   el('detalle').innerHTML=rows.map(r=>{
     if(r.sep) return '<div style="height:1px;background:rgba(255,255,255,0.07);margin:8px 0"></div>';
@@ -996,7 +1258,7 @@ function renderCharts() {
 //  EXPORT / IMPORT
 // ════════════════════════════════════════════
 function exportData() {
-  const obj={version:1,user:me.name,exportedAt:new Date().toISOString(),data:D};
+  const obj={version:2,user:me.name,exportedAt:new Date().toISOString(),data:D};
   const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -1014,9 +1276,8 @@ function importData(e) {
       if(!p.data) throw new Error();
       if(!confirm(`¿Importar datos de ${p.user||'?'} (${(p.exportedAt||'').split('T')[0]})? Se reemplazarán tus datos actuales.`)) return;
       D=p.data;
-      if(!D.ingresoFijo) D.ingresoFijo={importe:0,pctP:10,pctI:10};
-      if(!D.variables) D.variables=[];
-      if(!D.gastos) D.gastos=[];
+      // Ensure new format
+      if(!D.meses) D={ meses:{} };
       save(); populateInputs(); updateAll();
       toast('✅ Datos importados');
     } catch { toast('❌ Archivo inválido'); }
